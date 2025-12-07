@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Random Toss Picker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #050816;
+      --bg-soft: #0b1020;
+      --bg-softer: #111827;
+      --accent: #6366f1;
+      --accent-soft: rgba(99, 102, 241, 0.18);
+      --accent-strong: #4f46e5;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --danger: #f97373;
+      --border: #1f2933;
+      --radius-xl: 18px;
+      --radius-lg: 12px;
+      --shadow-soft: 0 22px 45px rgba(0, 0, 0, 0.6);
+      --transition-fast: 0.18s ease-out;
+      --transition-med: 0.22s ease-out;
+    }
+
+    body {
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top, #1f2937 0, transparent 55%),
+        radial-gradient(circle at bottom, #030712 0, #020617 100%);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .app-shell {
+      width: 100%;
+      max-width: 540px;
+      background: linear-gradient(135deg, #020617 0%, #020617 55%, #050816 100%);
+      border-radius: 26px;
+      padding: 2px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .app-shell::before {
+      content: "";
+      position: absolute;
+      inset: -120px;
+      background: radial-gradient(
+        circle at top left,
+        rgba(96, 165, 250, 0.18),
+        transparent 55%
+      );
+      opacity: 0.7;
+      pointer-events: none;
+    }
+
+    .app-shell-inner {
+      position: relative;
+      background: radial-gradient(circle at top, #020617 0, #020617 52%, #050816);
+      border-radius: 24px;
+      padding: 20px 20px 22px;
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      backdrop-filter: blur(14px);
+    }
+
+    .header {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+
+    .logo-dot {
+      width: 32px;
+      height: 32px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 30% 20%, #e5e7eb, #6b7280);
+      position: relative;
+      box-shadow: 0 0 0 1px rgba(55, 65, 81, 0.95),
+        0 0 0 5px rgba(31, 41, 55, 0.9), 0 14px 25px rgba(0, 0, 0, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #020617;
+      font-weight: 700;
+      font-size: 17px;
+    }
+
+    .logo-dot::after {
+      content: "";
+      width: 14px;
+      height: 14px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 30% 20%, #facc15, #f97316);
+      position: absolute;
+      bottom: -4px;
+      right: -4px;
+      box-shadow: 0 4px 12px rgba(251, 191, 36, 0.8);
+    }
+
+    .title-block {
+      flex: 1;
+    }
+
+    .title {
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .title-pill {
+      font-size: 11px;
+      padding: 2px 9px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      color: var(--muted);
+    }
+
+    .subtitle {
+      margin-top: 4px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .controls {
+      margin-bottom: 16px;
+      border-radius: var(--radius-xl);
+      background: radial-gradient(circle at top, #020617 0, #020617 60%, #050816);
+      border: 1px solid rgba(55, 65, 81, 0.8);
+      padding: 12px 12px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--muted);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .checkbox-row input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .count-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      color: var(--muted);
+      transition: opacity var(--transition-med), max-height var(--transition-med),
+        margin-top var(--transition-med);
+      overflow: hidden;
+    }
+
+    .count-row.hidden {
+      opacity: 0;
+      max-height: 0;
+      margin-top: 0;
+    }
+
+    .count-row.visible {
+      opacity: 1;
+      max-height: 45px;
+      margin-top: 2px;
+    }
+
+    .count-row label {
+      white-space: nowrap;
+    }
+
+    .count-input {
+      flex: 0 0 80px;
+      padding: 6px 8px;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+      background: rgba(15, 23, 42, 0.95);
+      color: var(--text);
+      font-size: 13px;
+      outline: none;
+    }
+
+    .count-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.4);
+    }
+
+    .hint {
+      font-size: 11px;
+      color: var(--muted);
+      opacity: 0.85;
+    }
+
+    .inputs-card {
+      border-radius: var(--radius-xl);
+      background: radial-gradient(circle at top left, #020617 0, #020617 45%, #050816);
+      border: 1px solid rgba(55, 65, 81, 0.9);
+      padding: 14px 12px 12px;
+      margin-bottom: 14px;
+    }
+
+    .inputs-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      gap: 6px;
+    }
+
+    .inputs-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: #e5e7eb;
+    }
+
+    .chip {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(55, 65, 81, 0.9);
+      color: var(--muted);
+    }
+
+    .inputs-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .input-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .input-label {
+      font-size: 11px;
+      color: var(--muted);
+      flex: 0 0 22px;
+      text-align: right;
+      opacity: 0.8;
+    }
+
+    .value-input {
+      flex: 1;
+      padding: 7px 9px;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+      background: rgba(15, 23, 42, 0.97);
+      color: var(--text);
+      font-size: 13px;
+      outline: none;
+      transition: border-color var(--transition-fast),
+        box-shadow var(--transition-fast), background var(--transition-fast),
+        transform 0.08s ease-out;
+    }
+
+    .value-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.3);
+      background: #020617;
+      transform: translateY(-1px);
+    }
+
+    .value-input::placeholder {
+      color: rgba(148, 163, 184, 0.55);
+    }
+
+    .actions-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+      margin-top: 4px;
+    }
+
+    .primary-button {
+      flex: 1;
+      border: none;
+      outline: none;
+      border-radius: 999px;
+      background: radial-gradient(circle at top left, var(--accent-strong), var(--accent));
+      color: white;
+      font-size: 14px;
+      font-weight: 500;
+      padding: 8px 14px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      box-shadow: 0 14px 30px rgba(55, 65, 81, 0.95);
+      transition: transform var(--transition-fast),
+        box-shadow var(--transition-fast), filter var(--transition-fast);
+    }
+
+    .primary-button span {
+      font-size: 15px;
+    }
+
+    .primary-button:hover {
+      transform: translateY(-1px) translateZ(0);
+      filter: brightness(1.04);
+      box-shadow: 0 18px 38px rgba(15, 23, 42, 0.95);
+    }
+
+    .primary-button:active {
+      transform: translateY(1px);
+      box-shadow: 0 8px 16px rgba(15, 23, 42, 0.95);
+    }
+
+    .secondary-button {
+      flex: 0 0 auto;
+      border-radius: 999px;
+      border: 1px solid rgba(55, 65, 81, 0.9);
+      background: rgba(15, 23, 42, 0.95);
+      color: var(--muted);
+      font-size: 11px;
+      padding: 6px 10px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: border-color var(--transition-fast),
+        background var(--transition-fast), color var(--transition-fast),
+        transform 0.08s ease-out;
+    }
+
+    .secondary-button:hover {
+      border-color: rgba(99, 102, 241, 0.7);
+      color: #e5e7eb;
+      background: rgba(15, 23, 42, 0.98);
+      transform: translateY(-1px);
+    }
+
+    .secondary-button:active {
+      transform: translateY(1px);
+    }
+
+    .secondary-button-icon {
+      font-size: 13px;
+    }
+
+    .status-text {
+      min-height: 18px;
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .status-text.error {
+      color: var(--danger);
+    }
+
+    .result-card {
+      border-radius: var(--radius-xl);
+      padding: 14px 12px 12px;
+      background: radial-gradient(circle at top, var(--accent-soft), #020617);
+      border: 1px solid rgba(99, 102, 241, 0.5);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .result-label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .result-main {
+      font-size: 24px;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      color: #e5e7eb;
+      word-break: break-word;
+      animation: result-pop 0.4s ease-out;
+    }
+
+    @keyframes result-pop {
+      from {
+        transform: scale(0.9);
+        opacity: 0;
+        filter: blur(2px);
+      }
+      to {
+        transform: scale(1);
+        opacity: 1;
+        filter: blur(0);
+      }
+    }
+
+    .history {
+      font-size: 11px;
+      color: var(--muted);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    .history-pill {
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.97);
+      border: 1px solid rgba(55, 65, 81, 0.95);
+      max-width: 100%;
+      word-break: break-all;
+    }
+
+    @media (max-width: 480px) {
+      .app-shell-inner {
+        padding: 16px 14px 18px;
+      }
+      .title {
+        font-size: 17px;
+      }
+      .result-main {
+        font-size: 21px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <div class="app-shell-inner">
+      <header class="header">
+        <div class="logo-dot">T</div>
+        <div class="title-block">
+          <div class="title">
+            Toss Picker
+            <span class="title-pill">Random chooser</span>
+          </div>
+          <p class="subtitle">
+            Powered By Shopflax
+          </p>
+        </div>
+      </header>
+
+      <section class="controls">
+        <label class="checkbox-row">
+          <input type="checkbox" id="custom-count-checkbox" />
+          <span>Customize number of inputs</span>
+        </label>
+
+        <div id="count-row" class="count-row hidden">
+          <label for="item-count">How many inputs?</label>
+          <input
+            id="item-count"
+            class="count-input"
+            type="number"
+            min="2"
+            max="30"
+            value="3"
+          />
+          <span class="hint">Press Enter or click outside to apply.</span>
+        </div>
+      </section>
+
+      <section class="inputs-card">
+        <div class="inputs-header">
+          <span class="inputs-title">Values to toss</span>
+          <span class="chip" id="inputs-count-label">3 inputs</span>
+        </div>
+
+        <div id="inputs-container" class="inputs-list">
+          <!-- Dynamic input rows will be injected here -->
+        </div>
+      </section>
+
+      <div class="actions-row">
+        <button id="toss-button" class="primary-button">
+          <span>🎲</span> Toss now
+        </button>
+        <button id="clear-button" class="secondary-button" type="button">
+          <span class="secondary-button-icon">🧹</span>
+          Clear all
+        </button>
+      </div>
+
+      <div id="status" class="status-text">
+        Type at least two values and hit “Toss now”.
+      </div>
+
+      <section class="result-card" id="result-card" style="display: none;">
+        <div class="result-label-row">
+          <span>Result</span>
+          <span id="result-tag" class="chip">Just tossed</span>
+        </div>
+        <div id="result-value" class="result-main"></div>
+        <div class="history" id="history"></div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    const DEFAULT_COUNT = 3;
+    const MAX_HISTORY = 8;
+
+    const customCountCheckbox = document.getElementById("custom-count-checkbox");
+    const countRow = document.getElementById("count-row");
+    const countInput = document.getElementById("item-count");
+    const inputsContainer = document.getElementById("inputs-container");
+    const inputsCountLabel = document.getElementById("inputs-count-label");
+    const tossButton = document.getElementById("toss-button");
+    const clearButton = document.getElementById("clear-button");
+    const statusEl = document.getElementById("status");
+    const resultCard = document.getElementById("result-card");
+    const resultValueEl = document.getElementById("result-value");
+    const resultTagEl = document.getElementById("result-tag");
+    const historyEl = document.getElementById("history");
+
+    let history = [];
+
+    function createInputRow(index) {
+      const row = document.createElement("div");
+      row.className = "input-row";
+
+      const label = document.createElement("div");
+      label.className = "input-label";
+      label.textContent = index + 1 < 10 ? `#0${index + 1}` : `#${index + 1}`;
+
+      const input = document.createElement("input");
+      input.className = "value-input";
+      input.type = "text";
+      input.placeholder = "Enter a name or value";
+
+      row.appendChild(label);
+      row.appendChild(input);
+
+      return row;
+    }
+
+    function renderInputs(count) {
+      inputsContainer.innerHTML = "";
+
+      const safeCount = Math.min(Math.max(count, 2), 30);
+
+      for (let i = 0; i < safeCount; i++) {
+        const row = createInputRow(i);
+        inputsContainer.appendChild(row);
+      }
+
+      inputsCountLabel.textContent =
+        safeCount + (safeCount === 1 ? " input" : " inputs");
+    }
+
+    function getCurrentValues() {
+      const inputs = inputsContainer.querySelectorAll(".value-input");
+      const values = [];
+
+      inputs.forEach((input) => {
+        const value = input.value.trim();
+        if (value) {
+          values.push(value);
+        }
+      });
+
+      return values;
+    }
+
+    function showStatus(message, isError = false) {
+      statusEl.textContent = message;
+      statusEl.classList.toggle("error", isError);
+    }
+
+    function updateHistory(newValue) {
+      history.unshift(newValue);
+      if (history.length > MAX_HISTORY) {
+        history = history.slice(0, MAX_HISTORY);
+      }
+
+      historyEl.innerHTML = "";
+      history.forEach((item, index) => {
+        const pill = document.createElement("span");
+        pill.className = "history-pill";
+        pill.textContent = index === 0 ? `Latest: ${item}` : item;
+        historyEl.appendChild(pill);
+      });
+    }
+
+    function performToss() {
+      const values = getCurrentValues();
+
+      if (values.length < 2) {
+        showStatus("Please enter at least two non-empty values.", true);
+        return;
+      }
+
+      const randomIndex = Math.floor(Math.random() * values.length);
+      const winner = values[randomIndex];
+
+      resultValueEl.textContent = winner;
+      resultTagEl.textContent = `From ${values.length} option${
+        values.length === 1 ? "" : "s"
+      }`;
+      resultCard.style.display = "flex";
+
+      resultValueEl.style.animation = "none";
+      void resultValueEl.offsetWidth;
+      resultValueEl.style.animation = "";
+
+      updateHistory(winner);
+      showStatus("Toss complete. You can toss again anytime.");
+    }
+
+    function clearAll() {
+      const inputs = inputsContainer.querySelectorAll(".value-input");
+      inputs.forEach((input) => (input.value = ""));
+      showStatus("All inputs cleared. Add values and toss again.");
+    }
+
+    customCountCheckbox.addEventListener("change", () => {
+      if (customCountCheckbox.checked) {
+        countRow.classList.remove("hidden");
+        countRow.classList.add("visible");
+        countInput.focus();
+      } else {
+        countRow.classList.add("hidden");
+        countRow.classList.remove("visible");
+        countInput.value = String(DEFAULT_COUNT);
+        renderInputs(DEFAULT_COUNT);
+      }
+    });
+
+    function applyCountFromInput() {
+      const parsed = parseInt(countInput.value, 10);
+      if (Number.isNaN(parsed)) {
+        countInput.value = String(DEFAULT_COUNT);
+        renderInputs(DEFAULT_COUNT);
+        showStatus("Invalid number. Using default 3 inputs.", true);
+        return;
+      }
+
+      const clamped = Math.min(Math.max(parsed, 2), 30);
+      if (clamped !== parsed) {
+        countInput.value = String(clamped);
+      }
+
+      renderInputs(clamped);
+      showStatus(`Input fields updated to ${clamped}.`);
+    }
+
+    countInput.addEventListener("blur", applyCountFromInput);
+    countInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        applyCountFromInput();
+      }
+    });
+
+    tossButton.addEventListener("click", () => {
+      performToss();
+    });
+
+    clearButton.addEventListener("click", () => {
+      clearAll();
+    });
+
+    renderInputs(DEFAULT_COUNT);
+  </script>
+</body>
+</html>
